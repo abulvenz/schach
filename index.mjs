@@ -36,19 +36,22 @@ const use = (v, f) => f(v);
 const shuffle = (arr, r = []) =>
     use(arr.map(e => e), a => range(arr.length).map(i =>
         a.splice(randomInt(a.length), 1)[0]
-    ))
+    ));
 
-
+const users = [];
+const games = [];
 
 io.on('connection', (socket) => {
-    socket.broadcast.emit("hi", socket.id)
+    users.push(socket.id)
+    io.emit("hi", { id: socket.id, users })
     console.log('a user connected');
     socket.on('disconnect', () => {
         console.log('user disconnected');
+        users.splice(users.indexOf(socket.id))
     });
     socket.on('chat message', (msg) => {
         io.emit('chat message', msg);
-        socket.emit("field", { field: shuffle(field.initialField) })
+        io.emit("field", { field: (field.initialField) })
     });
 
     socket.on('enter', msg =>

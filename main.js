@@ -110,13 +110,20 @@ socket.on('chat message', (msg) => {
     m.redraw();
 });
 
+let users = [];
+let games = [];
+
 socket.on("hi", msg => {
-    messages.push({ sender: "OPERATOR", msg: "Welcome " + msg });
+    messages.push({ sender: "OPERATOR", msg: "Welcome " + msg.id });
+
+    users = msg.users;
+    games = msg.games;
     m.redraw();
 })
 
 socket.on("field", msg => {
     field = msg.field;
+    // toggleFullScreen();
     m.redraw();
 })
 
@@ -138,22 +145,36 @@ const isSelected = idx => idx === selected;
 
 const select = idx => (selected = isSelected(idx) ? undefined : idx)
 
+
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+    }
+}
+
+
 m.mount(document.body, {
     view: vnode => [
-        ul.$messages(
-            messages.map(msg => li(msg.sender + ": " + msg.msg)),),
-        div.$form(
-            input.$input({ value: state.msg, oninput: e => state.msg = e.target.value, autocomplete: "off" }), button({ onclick: e => send() }, "Send")
-        ),
-        div.centerScreen(
-            div.board(
-                field.map((fie, idx) => div.field
-                [isSelected(idx) ? "selected" : ""]
-                [fieldClass(idx)]
-                [fcol(fie)]
-                    ({
-                        onclick: e => select(idx),
-                    }, figures[fie].symbol))
-            ))
+        field.length === 0 ? [
+            ul(users.map(u => li(u))),
+            ul.$messages(
+                messages.map(msg => li(msg.sender + ": " + msg.msg)),),
+            div.$form(
+                input.$input({ value: state.msg, oninput: e => state.msg = e.target.value, autocomplete: "off" }), button({ onclick: e => send() }, "Send")
+            ),
+        ] :
+            div.centerScreen(
+                div.board(
+                    field.map((fie, idx) => div.field
+                    [isSelected(idx) ? "selected" : ""]
+                    [fieldClass(idx)]
+                    [fcol(fie)]
+                        ({
+                            onclick: e => select(idx),
+                        }, figures[fie].symbol))
+                )),
+        button({ onclick: toggleFullScreen }, io.id)
     ]
 })
