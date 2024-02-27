@@ -15,39 +15,44 @@ const symbols =
     knight: { white: '♘', black: '♞' },
 };
 
+// ♖♗♔♕♙♘
 
 const figures =
 {
-    0: { symbol: "" },
+    0: {
+        symbol: "",
+        type: "empty",
+        color: "",
+    },
     11: {
         color: "white",
         type: "rook",
-        symbol: "♖",
+        symbol: "♜",
     },
     12: {
         color: "white",
         type: "bishop",
-        symbol: "♗",
+        symbol: "♝",
     },
     13: {
         color: "white",
         type: "king",
-        symbol: "♔",
+        symbol: "♚",
     },
     14: {
         color: "white",
         type: "queen",
-        symbol: "♕",
+        symbol: "♛",
     },
     15: {
         color: "white",
         type: "pawn",
-        symbol: "♙",
+        symbol: "♟",
     },
     16: {
         color: "white",
         type: "knight",
-        symbol: "♘",
+        symbol: "♞",
     },
     21: {
         color: "black",
@@ -90,17 +95,7 @@ const range = N => {
     return r;
 };
 
-let field = [
-    11, 16, 12, 14, 13, 12, 16, 11,
-    15, 15, 15, 15, 15, 15, 15, 15,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    25, 25, 25, 25, 25, 25, 25, 25,
-    21, 26, 22, 24, 23, 22, 26, 21
-];
+let field = [];
 
 const mirror = f => f.reverse();
 
@@ -120,6 +115,11 @@ socket.on("hi", msg => {
     m.redraw();
 })
 
+socket.on("field", msg => {
+    field = msg.field;
+    m.redraw();
+})
+
 const state = {
     msg: ""
 };
@@ -129,21 +129,31 @@ const send = () => {
     state.msg = "";
 };
 
+const fcol = v => `f${figures[v].color}`
+
 const fieldClass = idx => (idx
     + trunc(idx / 8)) % 2 === 0 ? "black" : "white";
 
+const isSelected = idx => idx === selected;
+
+const select = idx => (selected = isSelected(idx) ? undefined : idx)
+
 m.mount(document.body, {
     view: vnode => [
-        // ul.$messages(
-        //     messages.map(msg => li(msg.sender + ": " + msg.msg)),),
-        // div.$form(
-        //     input.$input({ value: state.msg, oninput: e => state.msg = e.target.value, autocomplete: "off" }), button({ onclick: e => send() }, "Send")
-        // ),
+        ul.$messages(
+            messages.map(msg => li(msg.sender + ": " + msg.msg)),),
+        div.$form(
+            input.$input({ value: state.msg, oninput: e => state.msg = e.target.value, autocomplete: "off" }), button({ onclick: e => send() }, "Send")
+        ),
         div.centerScreen(
             div.board(
-                range(64).map(idx => div.field[selected === idx ? "selected" : ""][fieldClass(idx)]({
-                    onclick: e => console.log(selected = selected === idx ? undefined : idx),
-                }, figures[field[idx]].symbol))
+                field.map((fie, idx) => div.field
+                [isSelected(idx) ? "selected" : ""]
+                [fieldClass(idx)]
+                [fcol(fie)]
+                    ({
+                        onclick: e => select(idx),
+                    }, figures[fie].symbol))
             ))
     ]
 })
