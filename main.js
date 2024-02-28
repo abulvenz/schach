@@ -4,10 +4,9 @@ import figures from "./figures";
 import io from "socket.io/client-dist/socket.io";
 
 const { trunc } = Math;
-const { div, ul, li, h1, form, input, button, table, tr, td } = tagl(m);
+const { div, ul, li, h1, form, input, button, table, tr, td, pre } = tagl(m);
 const messages = [];
-
-// TODO: Can't we import io from socket.io-client?
+const use = (v, f) => f(v);
 const socket = io();
 
 const range = (N) => {
@@ -18,13 +17,10 @@ const range = (N) => {
   return r;
 };
 
-let field = [];
-
-const mirror = (f) => f.reverse();
-
-let selected = undefined;
 let users = [];
 let games = [];
+let ownid = undefined;
+let game = undefined;
 
 const connectEvent = (eventName, callback) =>
   socket.on(eventName, (p) => {
@@ -35,7 +31,9 @@ const connectEvent = (eventName, callback) =>
 connectEvent("hi", (msg) => {
   messages.push({ sender: "OPERATOR", msg: "Welcome " + msg.id });
   users = msg.users;
+  ownid = ownid || msg.id;
   games = msg.games;
+  console.log(ownid, users);
 });
 
 connectEvent("chat message", (msg) => {
@@ -44,12 +42,7 @@ connectEvent("chat message", (msg) => {
 });
 
 connectEvent("field", (msg) => {
-  field = msg.field;
-  // mirror(field);
-});
-
-connectEvent("select", (msg) => {
-  selected = msg.selected;
+  game = msg;
 });
 
 const state = {
@@ -66,7 +59,7 @@ const fcol = (v) => `f${figures[v].color}`;
 const fieldClass = (idx) =>
   (idx + trunc(idx / 8)) % 2 === 0 ? "black" : "white";
 
-const isSelected = (idx) => idx === selected;
+const isSelected = (idx) => idx === game.selected;
 
 const select = (idx) => {
   socket.emit("select", { selected: idx });
@@ -80,50 +73,72 @@ function toggleFullScreen() {
   }
 }
 
+// Swap the field if the player is white
+const it = (cb) =>
+  use(game.playerW === ownid ? (i) => 63 - i : (i) => i, (map) =>
+    range(64)
+      .map(map)
+      .map((i) => cb(game.field[i], i))
+  );
+
+const userListC = (vnode) => ({
+  view: (vnode) =>
+    ul(
+      users.map((u) =>
+        li(
+          u,
+          u !== ownid
+            ? button(
+                { onclick: () => socket.emit("game", { user: u }) },
+                "Challenge"
+              )
+            : "(This is you)"
+        )
+      )
+    ),
+});
+
+const chatC = (vnode) => ({
+  view: (vnode) => [
+    ul.$messages(messages.map((msg) => li(msg.sender + ": " + msg.msg))),
+    div.$form(
+      input.$input({
+        value: state.msg,
+        oninput: (e) => (state.msg = e.target.value),
+        onkeydown: (e) => {
+          if (e.key === "Enter") {
+            send();
+          }
+        },
+        autocomplete: "off",
+      }),
+      button({ onclick: (e) => send() }, "Send")
+    ),
+  ],
+});
+
 m.mount(document.body, {
   view: (vnode) => [
-    field.length === 0
-      ? [
-          ul(
-            users.map((u) =>
-              li(
-                u,
-                button(
-                  { onclick: () => socket.emit("game", { user: u }) },
-                  "Play"
+    game === undefined
+      ? [m(userListC), m(chatC)]
+      : [
+          div.centerScreen(
+            div.board(
+              it((fie, idx) =>
+                div.field[isSelected(idx) ? "selected" : ""][fieldClass(idx)][
+                  fcol(fie)
+                ](
+                  {
+                    onclick: (e) => select(idx),
+                  },
+                  figures[fie].symbol
                 )
               )
             )
           ),
-          ul.$messages(messages.map((msg) => li(msg.sender + ": " + msg.msg))),
-          div.$form(
-            input.$input({
-              value: state.msg,
-              oninput: (e) => (state.msg = e.target.value),
-              onkeydown: (e) => {
-                if (e.key === "Enter") {
-                  send();
-                }
-              },
-              autocomplete: "off",
-            }),
-            button({ onclick: (e) => send() }, "Send")
-          ),
-        ]
-      : div.centerScreen(
-          div.board(
-            field.map((fie, idx) =>
-              div.field[isSelected(idx) ? "selected" : ""][fieldClass(idx)][
-                fcol(fie)
-              ](
-                {
-                  onclick: (e) => select(idx),
-                },
-                figures[fie].symbol
-              )
-            )
-          )
-        ),
+          button({ onclick: (e) => socket.emit("undo") }, "Undo"),
+        ],
     button({ onclick: toggleFullScreen }, io.id),
+    pre(ownid + "\n" + JSON.stringify(game, null, 2)),
   ],
 });
