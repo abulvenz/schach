@@ -62,7 +62,7 @@ const fieldClass = (idx) =>
 const isSelected = (idx) => idx === game.selected;
 
 const select = (idx) => {
-  socket.emit("select", { selected: idx });
+  socket.emit("select", { selected: idx, gameid: game.id });
 };
 
 function toggleFullScreen() {
@@ -136,9 +136,12 @@ m.mount(document.body, {
               )
             )
           ),
-          button({ onclick: (e) => socket.emit("undo") }, "Undo"),
+          button(
+            { onclick: (e) => socket.emit("undo", { gameid: game.id }) },
+            "Undo"
+          ),
         ],
-    button({ onclick: toggleFullScreen }, io.id),
-    pre(ownid + "\n" + JSON.stringify(game, null, 2)),
+    button({ onclick: toggleFullScreen }, "Toggle Fullscreen"),
+    // pre(ownid + "\n" + JSON.stringify(game, null, 2)),
   ],
 });

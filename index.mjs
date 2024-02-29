@@ -39,8 +39,9 @@ const shuffle = (arr, r = []) =>
   );
 
 const users = [];
-const games = [];
+const games = {};
 let next = 0;
+
 io.on("connection", (socket) => {
   const useridx = ++next;
   users.push({ socket, idx: useridx }) - 1;
@@ -62,52 +63,52 @@ io.on("connection", (socket) => {
 
   socket.on("game", (msg) => {
     const f = field.initialField.slice();
-    games.push(
-      stack({
-        playerB: useridx,
-        playerW: msg.user,
-        field: f,
-        next: "W",
-        selected: undefined,
-      })
-    );
+    const gameid = `game-${useridx}-${msg.user}`;
+    const game = (games[gameid] = stack({
+      id: gameid,
+      playerB: useridx,
+      playerW: msg.user,
+      field: f,
+      next: "W",
+      selected: undefined,
+    }));
 
-    console.log(games[games.length - 1].peek());
+    socket.join(game.id);
+    users.find((u) => u.idx === msg.user).socket.join(game.id);
 
-    io.emit("field", games[games.length - 1].pop());
+    io.to(game.id).emit("field", game.pop());
   });
 
   socket.on("select", (msg) => {
-    const game = games[games.length - 1].current();
-    if (game.next === "W" && game.playerW !== useridx) return;
-    if (game.next === "B" && game.playerB !== useridx) return;
-    if (
-      game.selected !== undefined &&
-      game.field[game.selected] > 0 &&
-      ((game.next === "W" &&
-        game.playerW === useridx &&
-        game.field[game.selected] > 0 &&
-        game.field[game.selected] < 20) ||
-        (game.next === "B" &&
-          game.playerB === useridx &&
-          game.field[game.selected] >= 20))
+    const game = games[msg.gameid];
+    const g = game.current();
+
+    if (g.next === "W" && g.playerW !== useridx) {
+      return;
+    } else if (g.next === "B" && g.playerB !== useridx) {
+      return;
+    } else if (g.selected === msg.selected) {
+      g.selected = undefined;
+    } else if (
+      g.selected !== undefined &&
+      field.color(g.field[g.selected]) === g.next
     ) {
-      const fig = game.field[game.selected];
-      game.field[game.selected] = 0;
-      game.field[msg.selected] = fig;
-      game.selected = undefined;
-      game.next = game.next === "W" ? "B" : "W";
+      const fig = g.field[g.selected];
+      g.field[g.selected] = 0;
+      g.field[msg.selected] = fig;
+      g.selected = undefined;
+      g.next = g.next === "W" ? "B" : "W";
     } else {
-      game.selected = msg.selected;
+      g.selected = msg.selected;
     }
-    games[games.length - 1].push(game);
-    io.emit("field", game);
+    game.push(g);
+    io.to(game.id).emit("field", g);
   });
 
-  socket.on("undo", () => {
-    const game = games[games.length - 1].pop();
-    console.log(game);
-    io.emit("field", game);
+  socket.on("undo", (msg) => {
+    const game = games[msg.gameid];
+    const g = game.pop();
+    io.to(game.id).emit("field", g);
   });
 
   socket.on("enter", (msg) => socket.join(msg));
