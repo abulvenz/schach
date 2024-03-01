@@ -60,6 +60,7 @@ const fieldClass = (idx) =>
   (idx + trunc(idx / 8)) % 2 === 0 ? "black" : "white";
 
 const isSelected = (idx) => idx === game.selected;
+const isValid = (idx) => game.valid.indexOf(idx) >= 0;
 
 const select = (idx) => {
   socket.emit("select", { selected: idx, gameid: game.id });
@@ -125,9 +126,9 @@ m.mount(document.body, {
           div.centerScreen(
             div.board(
               it((fie, idx) =>
-                div.field[isSelected(idx) ? "selected" : ""][fieldClass(idx)][
-                  fcol(fie)
-                ](
+                div.field[isValid(idx) ? "valid" : fieldClass(idx)][
+                  isSelected(idx) ? "selected" : ""
+                ][fcol(fie)](
                   {
                     onclick: (e) => select(idx),
                   },

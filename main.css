@@ -96,7 +96,15 @@ ul {
 
 .selected {
     /* filter: sepia(250%); */
-    border: 0.5vw solid lightblue;
+    border: 0.5vw solid blue;
+    margin: -0.5vw;
+    z-index: 100;
+}
+
+.valid {
+    /* filter: sepia(250%); */
+    border: 0.5vw solid green;
+    background-color: lightgreen;
     margin: -0.5vw;
     z-index: 100;
 }

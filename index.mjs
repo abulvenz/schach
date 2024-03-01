@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 import * as jsonpatch from "fast-json-patch/index.mjs";
 import field from "./field.mjs";
 import stack from "./stack.mjs";
+import GameProxy from "./gameproxy.mjs";
 
 const app = express();
 const server = createServer(app);
@@ -69,6 +70,7 @@ io.on("connection", (socket) => {
       playerB: useridx,
       playerW: msg.user,
       field: f,
+      valid: [],
       next: "W",
       selected: undefined,
     }));
@@ -83,25 +85,15 @@ io.on("connection", (socket) => {
     const game = games[msg.gameid];
     const g = game.current();
 
-    if (g.next === "W" && g.playerW !== useridx) {
+    const proxy = GameProxy(g);
+
+    if (!proxy.validPlayer(useridx)) {
       return;
-    } else if (g.next === "B" && g.playerB !== useridx) {
-      return;
-    } else if (g.selected === msg.selected) {
-      g.selected = undefined;
-    } else if (
-      g.selected !== undefined &&
-      field.color(g.field[g.selected]) === g.next
-    ) {
-      const fig = g.field[g.selected];
-      g.field[g.selected] = 0;
-      g.field[msg.selected] = fig;
-      g.selected = undefined;
-      g.next = g.next === "W" ? "B" : "W";
-    } else {
-      g.selected = msg.selected;
     }
-    game.push(g);
+
+    proxy.handleSelection(msg.selected);
+
+    game.push(proxy.newState());
     io.to(game.id).emit("field", g);
   });
 
