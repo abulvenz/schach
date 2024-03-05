@@ -115,12 +115,13 @@ export default function GameProxy(g) {
   };
 
   return {
+    finished: () => g.result !== undefined,
     validPlayer: (useridx) =>
       (g.next === "W" && g.playerW === useridx) ||
       (g.next === "B" && g.playerB === useridx),
     newState: () => g,
     handleSelection: (idx) => {
-      if (g.selected === idx) {
+      if (selectedIndex() === idx) {
         /**
          * Remove selection if the field was already selected.
          */
