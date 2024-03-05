@@ -4,7 +4,8 @@ import figures from "./figures";
 import io from "socket.io/client-dist/socket.io";
 
 const { trunc } = Math;
-const { div, ul, li, h1,h3, form, input, button, table, tr, td, pre } = tagl(m);
+const { div, ul, li, h1, h3, form, input, button, table, tr, td, pre } =
+  tagl(m);
 const messages = [];
 const use = (v, f) => f(v);
 const socket = io();
@@ -154,14 +155,15 @@ m.mount(document.body, {
                   isSelected(idx) ? "selected" : ""
                 ][fcol(fie)](
                   {
-                    onclick: (e) => (game.result ? alert("This game is over") : select(idx)),
+                    onclick: (e) =>
+                      game.result ? alert("This game is over") : select(idx),
                   },
                   figures[fie].symbol
                 )
               )
             )
           ),
-          mygame()
+          mygame() && !game.result
             ? [
                 button(
                   { onclick: (e) => socket.emit("undo", { gameid: game.id }) },
