@@ -3,9 +3,8 @@ import tagl from "tagl-mithril";
 import figures from "./figures";
 import io from "socket.io/client-dist/socket.io";
 
-
 const { trunc } = Math;
-const { div, ul, li, h1, form, input, button, table, tr, td, pre } = tagl(m);
+const { div, ul, li, h1,h3, form, input, button, table, tr, td, pre } = tagl(m);
 const messages = [];
 const use = (v, f) => f(v);
 const socket = io();
@@ -60,7 +59,7 @@ const state = {
   msg: "",
 };
 
-const mygame = () =>game && game.playerB === ownid || game.playerW === ownid;
+const mygame = () => (game && game.playerB === ownid) || game.playerW === ownid;
 
 const send = () => {
   socket.emit("chat message", { sender: socket.id, msg: state.msg });
@@ -147,6 +146,7 @@ m.mount(document.body, {
     game === undefined
       ? [m(userListC), m(chatC), m(gamesListC)]
       : [
+          h3("Game " + game.id + " " + (game.result ? game.result : "")),
           div.centerScreen(
             div.board(
               it((fie, idx) =>
@@ -154,7 +154,7 @@ m.mount(document.body, {
                   isSelected(idx) ? "selected" : ""
                 ][fcol(fie)](
                   {
-                    onclick: (e) => select(idx),
+                    onclick: (e) => (game.result ? alert("This game is over") : select(idx)),
                   },
                   figures[fie].symbol
                 )
