@@ -68,9 +68,37 @@ io.on("connection", (socket) => {
       io.emit("chat message", msg);
     });
 
+    const endWithResult = (result) => {
+      socket.on(result, async (msg) => {
+        const game = await persistence.games.loadById(msg.gameid);
+        if (game === undefined) {
+          return;
+        }
+
+        endWithResult("draw");
+        endWithResult("resign");
+
+        const g = game.current();
+        g.result = result;
+        game.push(g);
+        persistence.games.save(game);
+        io.to(g.id).emit("field", g);
+      });
+    };
+
+    endWithResult("draw");
+    endWithResult("resign");
+
+
     socket.on("game", async (msg) => {
       const f = field.initialField.slice();
       const gameid = `game-${useridx}-${msg.user}`;
+      if (await persistence.games.loadById(gameid) !== undefined) {
+        socket.join(gameid);
+        const game = await persistence.games.loadById(gameid);
+        io.to(gameid).emit("field", game.current());
+        return;
+      }
       const game = stack({
         id: gameid,
         playerB: useridx,
@@ -131,6 +159,7 @@ io.on("connection", (socket) => {
       if (game === undefined) {
         return;
       }
+      console.log("enter game", msg.gameid, useridx);
       socket.join(msg.gameid);
       const g = game.current();
       io.to(msg.gameid).emit("field", g);
