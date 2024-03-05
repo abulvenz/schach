@@ -3,6 +3,7 @@ import tagl from "tagl-mithril";
 import figures from "./figures";
 import io from "socket.io/client-dist/socket.io";
 
+
 const { trunc } = Math;
 const { div, ul, li, h1, form, input, button, table, tr, td, pre } = tagl(m);
 const messages = [];
@@ -16,6 +17,12 @@ const range = (N) => {
   }
   return r;
 };
+
+socket.on("connect", () => {
+  const userID =
+    localStorage.getItem("id") || localStorage.setItem("id", socket.id);
+  socket.emit("i am", { id: userID });
+});
 
 let users = [];
 let games = [];
@@ -32,7 +39,7 @@ connectEvent("hi", (msg) => {
   messages.push({ sender: "OPERATOR", msg: "Welcome " + msg.id });
   users = msg.users;
   ownid = ownid || msg.id;
-  games = msg.games;
+  games = msg.games || [];
   console.log(ownid, users);
 });
 
@@ -45,13 +52,23 @@ connectEvent("field", (msg) => {
   game = msg;
 });
 
+connectEvent("games", (msg) => {
+  games = msg;
+});
+
 const state = {
   msg: "",
 };
 
+const mygame = () =>game && game.playerB === ownid || game.playerW === ownid;
+
 const send = () => {
   socket.emit("chat message", { sender: socket.id, msg: state.msg });
   state.msg = "";
+};
+
+const enterGame = (gameid) => {
+  socket.emit("enter game", { gameid });
 };
 
 const fcol = (v) => `f${figures[v].color}`;
@@ -118,10 +135,17 @@ const chatC = (vnode) => ({
   ],
 });
 
+const gamesListC = (vnode) => ({
+  view: (vnode) =>
+    ul(
+      games.map((g) => li(g, button({ onclick: () => enterGame(g) }, "Join")))
+    ),
+});
+
 m.mount(document.body, {
   view: (vnode) => [
     game === undefined
-      ? [m(userListC), m(chatC)]
+      ? [m(userListC), m(chatC), m(gamesListC)]
       : [
           div.centerScreen(
             div.board(
@@ -137,10 +161,25 @@ m.mount(document.body, {
               )
             )
           ),
-          button(
-            { onclick: (e) => socket.emit("undo", { gameid: game.id }) },
-            "Undo"
-          ),
+          mygame()
+            ? [
+                button(
+                  { onclick: (e) => socket.emit("undo", { gameid: game.id }) },
+                  "Undo"
+                ),
+                button(
+                  {
+                    onclick: (e) => socket.emit("resign", { gameid: game.id }),
+                  },
+                  "Resign"
+                ),
+                button(
+                  { onclick: (e) => socket.emit("draw", { gameid: game.id }) },
+                  "Draw"
+                ),
+              ]
+            : null,
+          button({ onclick: (e) => (game = undefined) }, "Leave"),
         ],
     button({ onclick: toggleFullScreen }, "Toggle Fullscreen"),
     // pre(ownid + "\n" + JSON.stringify(game, null, 2)),
