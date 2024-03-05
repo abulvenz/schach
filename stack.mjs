@@ -1,6 +1,6 @@
 import jp from "fast-json-patch";
 
-const stack = (obj) => {
+const stack = (obj={}) => {
   let clone = (o) => JSON.parse(JSON.stringify(o));
   let state = clone(obj);
   let original = clone(obj);
@@ -21,6 +21,12 @@ const stack = (obj) => {
     clear: () => {
       history = [];
       return clone(original);
+    },
+    toStr: () => JSON.stringify({ state, history }),
+    fromStr: (str) => {
+      const res = JSON.parse(str);
+      state = res.state;
+      history = res.history;
     },
     peek: () => (dirty() ? clone(history[history.length - 1]) : []),
     current: () => clone(state),
