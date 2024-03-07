@@ -3,7 +3,11 @@ import redis from "redis";
 import { createClient } from "redis";
 import stack from "./stack.mjs";
 
-const client = await createClient()
+const client = await createClient({
+  host: "localhost",
+  port: 6379,
+  password: "dddeYVX7EwVmmxKPCDmwMdddaaatyKVge8oLd2t81"
+})
   .on("ready", () => console.info("Redis Client Connected"))
   .on("error", (err) => console.log("Redis Client Error", err))
   .connect();
@@ -14,7 +18,6 @@ const persistence = {
   games: {
     loadById: async (id) => {
       const game = await client.hGet("games", id);
-      console.log("loaded", game);
       if (game === undefined) {
         return undefined;
       }
@@ -29,12 +32,10 @@ const persistence = {
     },
     loadAllKeys: async () => {
       const games = await client.hKeys("games");
-      console.log("loaded", games);
       return games;
     },
     save: async (game) => {
       const str = game.toStr();
-      console.log("saving", str);
       await client.hSet("games", game.current().id, str);
     },
   },
