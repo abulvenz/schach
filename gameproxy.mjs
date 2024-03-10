@@ -125,7 +125,7 @@ export default function GameProxy(g) {
 
     const check = possibleFields.indexOf(otherKingIdx) >= 0;
     console.log("CHECK ", check, col, possibleFields, otherKingIdx);
-    return check;
+    return check ? otherKingIdx : undefined;
   };
 
   return {
@@ -147,7 +147,10 @@ export default function GameProxy(g) {
         field.color(selectedField()) === g.next
       ) {
         /** Moving */
-        if (g.valid.indexOf(idx) < 0) return;
+        if (g.valid.indexOf(idx) < 0) {
+          deselect();
+          return;
+        }
         const fig = selectedField();
         set(g.selected, 0);
         set(idx, fig);

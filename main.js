@@ -78,6 +78,7 @@ const fieldClass = (idx) =>
 
 const isSelected = (idx) => idx === game.selected;
 const isValid = (idx) => game.valid.indexOf(idx) >= 0;
+const isCheck = (idx) => game.check === idx;
 
 const select = (idx) => {
   socket.emit("select", { selected: idx, gameid: game.id });
@@ -148,10 +149,10 @@ m.mount(document.body, {
       ? [m(userListC), m(chatC), m(gamesListC)]
       : [
         h3("Game " + game.id + " " + (game.result ? game.result : "")),
-        div[game.check ? "check" : "nocheck"].centerScreen(
+        div.centerScreen(
           div.board(
             it((fie, idx) =>
-              div.field[isValid(idx) ? "valid" : fieldClass(idx)][
+              div.field[isCheck(idx) ? "check" : isValid(idx) ? "valid" : fieldClass(idx)][
                 isSelected(idx) ? "selected" : ""
               ][fcol(fie)](
                 {
