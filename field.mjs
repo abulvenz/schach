@@ -80,5 +80,5 @@ export default {
   coord_name: (idx) =>
     "ABCDEFGH".charAt(7 - (idx % 8)) + (Math.trunc(idx / 8) + 1),
   name: (v) => figures[v].color + "+" + figures[v].type,
-  color: (v) => (v === 0 ? undefined : v < 20 ? "W" : "B"),
+  color: (v) => (v === 0 ? undefined : v < 20 ? "white" : "black"),
 };

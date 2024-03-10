@@ -105,7 +105,7 @@ io.on("connection", (socket) => {
         playerW: msg.user,
         field: f,
         valid: [],
-        next: "W",
+        next: "white",
         result: undefined,
         selected: undefined,
       });

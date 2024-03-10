@@ -10,7 +10,7 @@ export default function GameProxy(g) {
   const set = (idx, val) => (g.field[idx] = val);
   const get = (idx) => g.field[idx];
   const coords = (idx) => ({ r: Math.trunc(idx / 8), c: 7 - (idx % 8) });
-  const next = () => (g.next = g.next === "W" ? "B" : "W");
+  const next = () => (g.next = g.next === "white" ? "black" : "white");
   const c2idx = ({ r, c }) => r * 8 + 7 - c;
   const histogram = (arr) =>
     arr.reduce((hist, v) => (hist[v] = (hist[v] || 0) + 1) && hist, {});
@@ -32,23 +32,26 @@ export default function GameProxy(g) {
   const onBoard = ({ r, c }) => r >= 0 && r < 8 && c >= 0 && c < 8;
   const isOccupied = ({ r, c }) => get(c2idx({ r, c })) !== 0;
   const not = (f) => (e) => !f(e);
-  const isOpponent = ({ r, c }) =>
-    isOccupied({ r, c }) && field.color(get(c2idx({ r, c }))) !== g.next;
-  const isFriend = ({ r, c }) => field.color(get(c2idx({ r, c }))) === g.next;
+  const isOpponent = mycol => ({ r, c }) => {
+    const ret = isOccupied({ r, c }) && field.color(get(c2idx({ r, c }))) !== mycol;
+    console.log(ret, isOccupied({ r, c }), mycol, field.color(get(c2idx({ r, c }))))
+    return ret;
+  }
+  const isFriend = mycol => ({ r, c }) => field.color(get(c2idx({ r, c }))) === mycol;
 
   const flatMap = (arr) => arr.reduce((acc, v) => acc.concat(v), []);
 
   const use = (v, f) => f(v);
 
-  const walk = (c, dir, res = []) =>
+  const walk = (mycol, c, dir, res = []) =>
     use(dir(c), (n) =>
       !onBoard(n)
         ? res
-        : isFriend(n)
-        ? res
-        : isOpponent(n)
-        ? [...res, n]
-        : walk(n, dir, [...res, n])
+        : isFriend(mycol)(n)
+          ? res
+          : isOpponent(mycol)(n)
+            ? [...res, n]
+            : walk(mycol, n, dir, [...res, n])
     );
 
   const calcValidFields = (idx) => {
@@ -59,10 +62,10 @@ export default function GameProxy(g) {
       return Object.values(directions)
         .map((d) => d(c))
         .filter(onBoard)
-        .filter(not(isFriend))
+        .filter(not(isFriend(fig.color)))
         .map(c2idx);
     } else if (fig.type === "queen") {
-      return flatMap(Object.values(directions).map((d) => walk(c, d))).map(
+      return flatMap(Object.values(directions).map((d) => walk(fig.color, c, d))).map(
         c2idx
       );
     } else if (fig.type === "bishop") {
@@ -72,7 +75,7 @@ export default function GameProxy(g) {
           directions.up_right,
           directions.down_left,
           directions.down_right,
-        ].map((d) => walk(c, d))
+        ].map((d) => walk(fig.color, c, d))
       ).map(c2idx);
     } else if (fig.type === "knight") {
       return [
@@ -86,12 +89,12 @@ export default function GameProxy(g) {
         directions.right(directions.right(directions.down(c))),
       ]
         .filter(onBoard)
-        .filter(not(isFriend))
+        .filter(not(isFriend(fig.color)))
         .map(c2idx);
     } else if (fig.type === "rook") {
       return flatMap(
         [directions.up, directions.down, directions.left, directions.right].map(
-          (d) => walk(c, d)
+          (d) => walk(fig.color, c, d)
         )
       ).map(c2idx);
     } else if (fig.type === "pawn") {
@@ -108,7 +111,7 @@ export default function GameProxy(g) {
           : [directions.down_left(c), directions.down_right(c)];
       return flatMap([
         pos.filter(not(isOccupied)).map(c2idx),
-        pos2.filter(isOpponent).map(c2idx),
+        pos2.filter(isOpponent(fig.color)).map(c2idx),
       ]);
     }
     return [];
@@ -117,8 +120,8 @@ export default function GameProxy(g) {
   return {
     finished: () => g.result !== undefined,
     validPlayer: (useridx) =>
-      (g.next === "W" && g.playerW === useridx) ||
-      (g.next === "B" && g.playerB === useridx),
+      (g.next === "white" && g.playerW === useridx) ||
+      (g.next === "black" && g.playerB === useridx),
     newState: () => g,
     handleSelection: (idx) => {
       if (selectedIndex() === idx) {

@@ -105,12 +105,12 @@ const userListC = (vnode) => ({
       users.map((u) =>
         li(
           u,
-          u !== ownid
-            ? button(
-                { onclick: () => socket.emit("game", { user: u }) },
-                "Challenge"
-              )
-            : "(This is you)"
+          u === ownid ? " (This is you)" : null,
+          button(
+            { onclick: () => socket.emit("game", { user: u }) },
+            "Challenge"
+          )
+
         )
       )
     ),
@@ -147,42 +147,42 @@ m.mount(document.body, {
     game === undefined
       ? [m(userListC), m(chatC), m(gamesListC)]
       : [
-          h3("Game " + game.id + " " + (game.result ? game.result : "")),
-          div.centerScreen(
-            div.board(
-              it((fie, idx) =>
-                div.field[isValid(idx) ? "valid" : fieldClass(idx)][
-                  isSelected(idx) ? "selected" : ""
-                ][fcol(fie)](
-                  {
-                    onclick: (e) =>
-                      game.result ? alert("This game is over") : select(idx),
-                  },
-                  figures[fie].symbol
-                )
+        h3("Game " + game.id + " " + (game.result ? game.result : "")),
+        div.centerScreen(
+          div.board(
+            it((fie, idx) =>
+              div.field[isValid(idx) ? "valid" : fieldClass(idx)][
+                isSelected(idx) ? "selected" : ""
+              ][fcol(fie)](
+                {
+                  onclick: (e) =>
+                    game.result ? alert("This game is over") : select(idx),
+                },
+                figures[fie].symbol
               )
             )
-          ),
-          mygame() && !game.result
-            ? [
-                button(
-                  { onclick: (e) => socket.emit("undo", { gameid: game.id }) },
-                  "Undo"
-                ),
-                button(
-                  {
-                    onclick: (e) => socket.emit("resign", { gameid: game.id }),
-                  },
-                  "Resign"
-                ),
-                button(
-                  { onclick: (e) => socket.emit("draw", { gameid: game.id }) },
-                  "Draw"
-                ),
-              ]
-            : null,
-          button({ onclick: (e) => (game = undefined) }, "Leave"),
-        ],
+          )
+        ),
+        mygame() && !game.result
+          ? [
+            button(
+              { onclick: (e) => socket.emit("undo", { gameid: game.id }) },
+              "Undo"
+            ),
+            button(
+              {
+                onclick: (e) => socket.emit("resign", { gameid: game.id }),
+              },
+              "Resign"
+            ),
+            button(
+              { onclick: (e) => socket.emit("draw", { gameid: game.id }) },
+              "Draw"
+            ),
+          ]
+          : null,
+        button({ onclick: (e) => (game = undefined) }, "Leave"),
+      ],
     button({ onclick: toggleFullScreen }, "Toggle Fullscreen"),
     // pre(ownid + "\n" + JSON.stringify(game, null, 2)),
   ],
