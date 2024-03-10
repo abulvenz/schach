@@ -148,7 +148,7 @@ m.mount(document.body, {
       ? [m(userListC), m(chatC), m(gamesListC)]
       : [
         h3("Game " + game.id + " " + (game.result ? game.result : "")),
-        div.centerScreen(
+        div[game.check ? "check" : "nocheck"].centerScreen(
           div.board(
             it((fie, idx) =>
               div.field[isValid(idx) ? "valid" : fieldClass(idx)][

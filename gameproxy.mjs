@@ -9,6 +9,7 @@ export default function GameProxy(g) {
   const deselect = () => select(undefined);
   const set = (idx, val) => (g.field[idx] = val);
   const get = (idx) => g.field[idx];
+  const figureAt = idx => field.figures[get(idx)];
   const coords = (idx) => ({ r: Math.trunc(idx / 8), c: 7 - (idx % 8) });
   const next = () => (g.next = g.next === "white" ? "black" : "white");
   const c2idx = ({ r, c }) => r * 8 + 7 - c;
@@ -32,11 +33,7 @@ export default function GameProxy(g) {
   const onBoard = ({ r, c }) => r >= 0 && r < 8 && c >= 0 && c < 8;
   const isOccupied = ({ r, c }) => get(c2idx({ r, c })) !== 0;
   const not = (f) => (e) => !f(e);
-  const isOpponent = mycol => ({ r, c }) => {
-    const ret = isOccupied({ r, c }) && field.color(get(c2idx({ r, c }))) !== mycol;
-    console.log(ret, isOccupied({ r, c }), mycol, field.color(get(c2idx({ r, c }))))
-    return ret;
-  }
+  const isOpponent = mycol => ({ r, c }) => isOccupied({ r, c }) && field.color(get(c2idx({ r, c }))) !== mycol;
   const isFriend = mycol => ({ r, c }) => field.color(get(c2idx({ r, c }))) === mycol;
 
   const flatMap = (arr) => arr.reduce((acc, v) => acc.concat(v), []);
@@ -56,7 +53,7 @@ export default function GameProxy(g) {
 
   const calcValidFields = (idx) => {
     if (!isOccupied(idx)) return [];
-    const fig = field.figures[get(idx)];
+    const fig = figureAt(idx);
     const c = coords(idx);
     if (fig.type === "king") {
       return Object.values(directions)
@@ -116,6 +113,20 @@ export default function GameProxy(g) {
     }
     return [];
   };
+  const checkCheck = col => {
+    const possibleFields = Object.keys(histogram(flatMap(
+      g.field.map((i, sidx) => figureAt(sidx).color === col ? sidx : undefined)
+        .filter(e => !!e).map(calcValidFields)
+    ))).map(e => +e);
+    const othercol = col === "white" ? "black" : "white";
+    // Could be determined by a search in figures definition.
+    const otherKingType = othercol === "black" ? 23 : 13;
+    const otherKingIdx = g.field.findIndex(e => e === otherKingType);
+
+    const check = possibleFields.indexOf(otherKingIdx) >= 0;
+    console.log("CHECK ", check, col, possibleFields, otherKingIdx);
+    return check;
+  };
 
   return {
     finished: () => g.result !== undefined,
@@ -143,6 +154,7 @@ export default function GameProxy(g) {
         g.selected = undefined;
         next();
         g.valid = [];
+        g.check = checkCheck(figureAt(idx).color);
       } else {
         /** Plain selection */
         g.selected = idx;
