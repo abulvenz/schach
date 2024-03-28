@@ -2,17 +2,28 @@ import redis from "redis";
 
 import { createClient } from "redis";
 import stack from "./stack.mjs";
+const { keys } = Object;
 
-const client = await createClient({
-  host: "localhost",
-  port: 6379,
-  password: "dddeYVX7EwVmmxKPCDmwMdddaaatyKVge8oLd2t81"
-})
-  .on("ready", () => console.info("Redis Client Connected"))
-  .on("error", (err) => console.log("Redis Client Error", err))
-  .connect();
+const use_redis = false;
 
-client.HGETALL("games").then((e) => console.log(e));
+const dict = {};
+
+const client = use_redis
+  ? await createClient({
+      host: "localhost",
+      port: 6379,
+      password: "dddeYVX7EwVmmxKPCDmwMdddaaatyKVge8oLd2t81",
+    })
+      .on("ready", () => console.info("Redis Client Connected"))
+      .on("error", (err) => console.log("Redis Client Error", err))
+      .connect()
+  : {
+      hKeys: (id) => keys(dict[id] || {}),
+      hGet: (key, id) => (dict[key] || {})[id],
+      hSet: (key, id, value) => ((dict[key] = dict[key] || {})[id] = value),
+    };
+
+// client.HGETALL("games").then((e) => console.log(e));
 
 const persistence = {
   games: {
