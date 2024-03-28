@@ -112,7 +112,7 @@ h3 {
 
 .valid {
     /* filter: sepia(250%); */
-    border: min(0.5vw, 0.5vh) solid green;
+    border: min(0.5vw, 0.5vh) solid rgba(0, 128, 0, 0.387);
     background-color: lightgreen;
     margin: max(-0.5vw, -0.5vh);
     z-index: 100;
