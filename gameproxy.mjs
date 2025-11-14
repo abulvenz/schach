@@ -9,7 +9,7 @@ export default function GameProxy(g) {
   const deselect = () => select(undefined);
   const set = (idx, val) => (g.field[idx] = val);
   const get = (idx) => g.field[idx];
-  const figureAt = idx => field.figures[get(idx)];
+  const figureAt = (idx) => field.figures[get(idx)];
   const coords = (idx) => ({ r: Math.trunc(idx / 8), c: 7 - (idx % 8) });
   const next = () => (g.next = g.next === "white" ? "black" : "white");
   const c2idx = ({ r, c }) => r * 8 + 7 - c;
@@ -33,8 +33,14 @@ export default function GameProxy(g) {
   const onBoard = ({ r, c }) => r >= 0 && r < 8 && c >= 0 && c < 8;
   const isOccupied = ({ r, c }) => get(c2idx({ r, c })) !== 0;
   const not = (f) => (e) => !f(e);
-  const isOpponent = mycol => ({ r, c }) => isOccupied({ r, c }) && field.color(get(c2idx({ r, c }))) !== mycol;
-  const isFriend = mycol => ({ r, c }) => field.color(get(c2idx({ r, c }))) === mycol;
+  const isOpponent =
+    (mycol) =>
+    ({ r, c }) =>
+      isOccupied({ r, c }) && field.color(get(c2idx({ r, c }))) !== mycol;
+  const isFriend =
+    (mycol) =>
+    ({ r, c }) =>
+      field.color(get(c2idx({ r, c }))) === mycol;
 
   const flatMap = (arr) => arr.reduce((acc, v) => acc.concat(v), []);
 
@@ -45,10 +51,10 @@ export default function GameProxy(g) {
       !onBoard(n)
         ? res
         : isFriend(mycol)(n)
-          ? res
-          : isOpponent(mycol)(n)
-            ? [...res, n]
-            : walk(mycol, n, dir, [...res, n])
+        ? res
+        : isOpponent(mycol)(n)
+        ? [...res, n]
+        : walk(mycol, n, dir, [...res, n])
     );
 
   const calcValidFields = (idx) => {
@@ -62,9 +68,9 @@ export default function GameProxy(g) {
         .filter(not(isFriend(fig.color)))
         .map(c2idx);
     } else if (fig.type === "queen") {
-      return flatMap(Object.values(directions).map((d) => walk(fig.color, c, d))).map(
-        c2idx
-      );
+      return flatMap(
+        Object.values(directions).map((d) => walk(fig.color, c, d))
+      ).map(c2idx);
     } else if (fig.type === "bishop") {
       return flatMap(
         [
@@ -113,18 +119,26 @@ export default function GameProxy(g) {
     }
     return [];
   };
-  const checkCheck = col => {
-    const possibleFields = Object.keys(histogram(flatMap(
-      g.field.map((i, sidx) => figureAt(sidx).color === col ? sidx : undefined)
-        .filter(e => !!e).map(calcValidFields)
-    ))).map(e => +e);
-    const othercol = col === "white" ? "black" : "white";
+  const checkCheck = (color) => {
+    const possibleFields = Object.keys(
+      histogram(
+        flatMap(
+          g.field
+            .map((i, sidx) =>
+              figureAt(sidx).color === color ? sidx : undefined
+            )
+            .filter((e) => !!e)
+            .map(calcValidFields)
+        )
+      )
+    ).map((e) => +e);
+    const othercol = color === "white" ? "black" : "white";
     // Could be determined by a search in figures definition.
     const otherKingType = othercol === "black" ? 23 : 13;
-    const otherKingIdx = g.field.findIndex(e => e === otherKingType);
+    const otherKingIdx = g.field.findIndex((e) => e === otherKingType);
 
     const check = possibleFields.indexOf(otherKingIdx) >= 0;
-    console.log("CHECK ", check, col, possibleFields, otherKingIdx);
+    console.log("CHECK ", check, color, possibleFields, otherKingIdx);
     return check ? otherKingIdx : undefined;
   };
 
@@ -134,6 +148,7 @@ export default function GameProxy(g) {
       (g.next === "white" && g.playerW === useridx) ||
       (g.next === "black" && g.playerB === useridx),
     newState: () => g,
+    endangered: () => checkCheck(g.next),
     handleSelection: (idx) => {
       if (selectedIndex() === idx) {
         /**
@@ -151,7 +166,10 @@ export default function GameProxy(g) {
           deselect();
           return;
         }
-        const fig = selectedField();
+        let fig = selectedField();
+        /** Make it a queen */
+        if (figureAt(g.selected).type === "pawn" && coords(idx).r % 7 === 0)
+          fig--;
         set(g.selected, 0);
         set(idx, fig);
         g.selected = undefined;

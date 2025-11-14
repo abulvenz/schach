@@ -89,11 +89,10 @@ io.on("connection", (socket) => {
     endWithResult("draw");
     endWithResult("resign");
 
-
     socket.on("game", async (msg) => {
       const f = field.initialField.slice();
       const gameid = `game-${useridx}-${msg.user}`;
-      if (await persistence.games.loadById(gameid) !== undefined) {
+      if ((await persistence.games.loadById(gameid)) !== undefined) {
         socket.join(gameid);
         const game = await persistence.games.loadById(gameid);
         io.to(gameid).emit("field", game.current());
@@ -125,9 +124,7 @@ io.on("connection", (socket) => {
       }
       console.log(game);
       const g = game.current();
-
       console.log(socket.rooms);
-
       const proxy = GameProxy(g);
 
       if (!proxy.validPlayer(useridx)) {
@@ -136,9 +133,11 @@ io.on("connection", (socket) => {
 
       proxy.handleSelection(msg.selected);
 
-      game.push(proxy.newState());
-      io.to(g.id).emit("field", g);
-      persistence.games.save(game);
+      if (!proxy.endangered()) {
+        game.push(proxy.newState());
+        io.to(g.id).emit("field", g);
+        persistence.games.save(game);
+      }
     });
 
     socket.on("undo", async (msg) => {
